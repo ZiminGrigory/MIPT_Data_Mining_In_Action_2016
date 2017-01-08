@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+import math
 
 
 class LogisticRegression:
@@ -35,6 +36,7 @@ class LogisticRegression:
         # Run stochastic gradient descent to optimize W
         self.loss_history = []
         for it in xrange(num_iters):
+            #print "Iter", it
             #########################################################################
             # TODO:                                                                 #
             # Sample batch_size elements from the training data and their           #
@@ -46,8 +48,9 @@ class LogisticRegression:
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
-
-
+            batch_indices = np.random.choice(dim, batch_size)
+            X_batch = X[batch_indices]
+            y_batch = y[batch_indices]
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
@@ -60,8 +63,9 @@ class LogisticRegression:
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-
-
+            #print self.w, gradW
+            self.w -= learning_rate*gradW
+            #print self.w
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
@@ -91,9 +95,7 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
-
-
-
+        y_proba = [[1./(1 + math.exp(-np.dot(x.toarray(), self.w))), 1./(1 + math.exp(np.dot(x.toarray()[0], self.w)))] for x in X]
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
@@ -116,8 +118,10 @@ class LogisticRegression:
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-        y_proba = self.predict_proba(X, append_bias=True)
-        y_pred = ...
+        X = LogisticRegression.append_biases(X)
+#         y_proba = self.predict_proba(X, False)
+#         y_pred = np.array([ np.sign(y_proba[i][0] - 0.5) for i in xrange(len(y_proba))])
+        y_pred = [np.sign(np.dot(x.toarray()[0],self.w)) for x in X] 
 
         ###########################################################################
         #                           END OF YOUR CODE                              #
@@ -137,17 +141,21 @@ class LogisticRegression:
         dw = np.zeros_like(self.w)  # initialize the gradient as zero
         loss = 0
         # Compute loss and gradient. Your code should not contain python loops.
-
-
+        y_pred = self.predict_proba(X_batch)
+        #loss = math.fsum([y_batch[i]*math.log(y_pred[i][0]) + (1-y_batch[i])*math.log(y_pred[i][1]) for i in range(len(y_batch))])/len(y_batch)
+        loss = np.sum([math.log(1 + math.exp(-np.dot(self.w, X_batch[i].toarray()[0])*y_batch[i])) for i in xrange(len(y_batch))])/len(y_batch)
+        dw = np.sum([-y_batch[i]*X_batch[i].toarray()[0]*1./(1 + math.exp(y_batch[i]*np.dot(X_batch[i].toarray()[0], self.w))) for i in xrange(len(y_batch))], axis = 0)/len(y_batch)
+        #print X_batch[0].toarray(), y_pred[0][0], y_batch[0], loss
+        #dw = [math.fsum([float(X_batch[i].toarray()[0][j])*(y_pred[i][0] - y_batch[i]) for i in xrange(len(y_batch))]) for j in xrange(len(self.w))]
         # Right now the loss is a sum over all training examples, but we want it
         # to be an average instead so we divide by num_train.
         # Note that the same thing must be done with gradient.
-
-
         # Add regularization to the loss and gradient.
         # Note that you have to exclude bias term in regularization.
-
-
+        loss += (reg*np.dot(self.w[:-1], self.w[:-1]))
+        buff = dw[-1]
+        dw += reg*2*(np.array(self.w))
+        dw[-1] = buff
         return loss, dw
 
     @staticmethod

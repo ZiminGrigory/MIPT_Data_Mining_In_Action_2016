@@ -38,7 +38,7 @@ def grad_check_sparse(f, x, analytic_grad, num_checks):
 
     for i in xrange(num_checks):
         ix = tuple([randrange(m) for m in x.shape])
-
+        #print ix
         x[ix] += h  # increment by h
         fxph = f(x)  # evaluate f(x + h)
         x[ix] -= 2 * h  # increment by h
